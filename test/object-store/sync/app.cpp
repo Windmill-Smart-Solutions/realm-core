@@ -309,6 +309,8 @@ TEST_CASE("app: UsernamePasswordProviderClient integration", "[sync][app]")
                 REQUIRE(error);
                 CHECK(error->message == "name already in use");
                 CHECK(app::ServiceErrorCode(error->error_code.value()) == app::ServiceErrorCode::account_name_in_use);
+                CHECK(!error->link_to_server_logs.empty());
+                CHECK(error->link_to_server_logs.find(base_url) != std::string::npos);
                 processed = true;
             });
         CHECK(processed);
@@ -371,6 +373,8 @@ TEST_CASE("app: UsernamePasswordProviderClient integration", "[sync][app]")
             password, "token_sample", "token_id_sample", [&](Optional<app::AppError> error) {
                 REQUIRE(error);
                 CHECK(error->message == "invalid token data");
+                CHECK(!error->link_to_server_logs.empty());
+                CHECK(error->link_to_server_logs.find(base_url) != std::string::npos);
                 processed = true;
             });
         CHECK(processed);
@@ -2502,6 +2506,7 @@ TEST_CASE("app: response error handling", "[sync][app]")
                                          CHECK(error->error_code.value() == 404);
                                          CHECK(error->message == std::string("http error code considered fatal"));
                                          CHECK(error->error_code.message() == "Client Error: 404");
+                                         CHECK(error->link_to_server_logs.empty());
                                          processed = true;
                                      });
         CHECK(processed);
@@ -2520,6 +2525,7 @@ TEST_CASE("app: response error handling", "[sync][app]")
                                          CHECK(error->error_code.value() == 500);
                                          CHECK(error->message == std::string("http error code considered fatal"));
                                          CHECK(error->error_code.message() == "Server Error: 500");
+                                         CHECK(error->link_to_server_logs.empty());
                                          processed = true;
                                      });
         CHECK(processed);
@@ -2539,6 +2545,7 @@ TEST_CASE("app: response error handling", "[sync][app]")
                                          CHECK(error->error_code.value() == 42);
                                          CHECK(error->message == std::string("Custom error message"));
                                          CHECK(error->error_code.message() == "code 42");
+                                         CHECK(error->link_to_server_logs.empty());
                                          processed = true;
                                      });
         CHECK(processed);
@@ -2552,7 +2559,8 @@ TEST_CASE("app: response error handling", "[sync][app]")
                                         {"access_token", good_access_token},
                                         {"refresh_token", good_access_token},
                                         {"user_id", "Brown Bear"},
-                                        {"device_id", "Panda Bear"}})
+                                        {"device_id", "Panda Bear"},
+                                        {"link", "http://...whatever the server passes us"}})
                             .dump();
         app->log_in_with_credentials(realm::app::AppCredentials::anonymous(),
                                      [&](std::shared_ptr<realm::SyncUser> user, Optional<app::AppError> error) {
@@ -2566,6 +2574,8 @@ TEST_CASE("app: response error handling", "[sync][app]")
                                                app::ServiceErrorCode::mongodb_error);
                                          CHECK(error->message == std::string("a fake MongoDB error message!"));
                                          CHECK(error->error_code.message() == "MongoDBError");
+                                         CHECK(error->link_to_server_logs ==
+                                               std::string("http://...whatever the server passes us"));
                                          processed = true;
                                      });
         CHECK(processed);
