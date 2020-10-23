@@ -10,6 +10,7 @@ let versionExtra = versionPieces.count > 1 ? versionPieces[1] : ""
 
 let package = Package(
     name: "RealmCore",
+    platforms: [.iOS(.v11)],
     products: [
         .library(
             name: "RealmCore",
